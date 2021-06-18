@@ -2,6 +2,7 @@ import pygame
 import random
 from direction import Direction
 from collections import namedtuple
+import time
 
 pygame.init()
 
@@ -14,6 +15,7 @@ SPEED = 10
 # rgb colors
 WHITE = (255, 255, 255)
 RED = (200, 0, 0)
+GREEN = (0, 200, 0)
 BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
@@ -36,7 +38,12 @@ class SnakeGame:
                       ]
         self.score = 0
         self.food = None
+        self.enemy = None
+        self.enemy_spawn = None
         self._place_food()
+        self._place_enemy()
+
+
 
     def play_step(self):
         for event in pygame.event.get():
@@ -67,6 +74,7 @@ class SnakeGame:
         else:
             self.snake.pop()
 
+        self.handle_enemy()
         self._update_ui()
         self.clock.tick(SPEED)
 
@@ -76,8 +84,16 @@ class SnakeGame:
         x = random.randint(0, (self.w-BLOCK_SIZE)//BLOCK_SIZE) * BLOCK_SIZE
         y = random.randint(0, (self.h-BLOCK_SIZE)//BLOCK_SIZE) * BLOCK_SIZE
         self.food = Point(x,y)
-        if self.food in self.snake:
+        if self.food in self.snake or self.food == self.enemy:
             self._place_food()
+
+    def _place_enemy(self):
+        x = random.randint(0, (self.w-BLOCK_SIZE)//BLOCK_SIZE) * BLOCK_SIZE
+        y = random.randint(0, (self.h-BLOCK_SIZE)//BLOCK_SIZE) * BLOCK_SIZE
+        self.enemy = Point(x,y)
+        self.enemy_spawn = time.time()
+        if self.enemy in self.snake or self.enemy == self.food:
+            self._place_enemy()
 
     def _update_ui(self):
         self.display.fill(BLACK)
@@ -94,8 +110,13 @@ class SnakeGame:
                         )
 
         pygame.draw.rect(self.display,
-                    RED,
+                    GREEN,
                     pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE)
+                    )
+
+        pygame.draw.rect(self.display,
+                    RED,
+                    pygame.Rect(self.enemy.x, self.enemy.y, BLOCK_SIZE, BLOCK_SIZE)
                     )
 
         text = font.render("Score: "+str(self.score), True, WHITE)
@@ -126,5 +147,12 @@ class SnakeGame:
         if self.head in self.snake[1:]:
             return True
 
+        if self.head == self.enemy:
+            return True
+
         return False
 
+    def handle_enemy(self):
+        now = time.time()
+        if now - self.enemy_spawn > 10:
+            self._place_enemy()
